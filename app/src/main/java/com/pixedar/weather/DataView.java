@@ -171,7 +171,6 @@ public class DataView extends AppCompatActivity {
             }
             if (data.size() == 0) {
                 showMessage("No data received");
-                finish();
                 return;
             }
             //progressDialog.dismiss();
