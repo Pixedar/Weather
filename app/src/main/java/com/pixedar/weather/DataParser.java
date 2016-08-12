@@ -6,6 +6,10 @@ public class DataParser {
     private float temperature;
 
     public void parseLine(String line) {
+        if (line == null) {
+            dataValid = false;
+            return;
+        }
         String[] parts = line.split(";");
         try {
             pressure = Float.parseFloat(parts[0]);

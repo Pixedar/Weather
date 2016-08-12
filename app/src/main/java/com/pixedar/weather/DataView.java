@@ -10,9 +10,15 @@ import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.github.mikephil.charting.charts.LineChart;
+import com.github.mikephil.charting.data.Entry;
+import com.github.mikephil.charting.data.LineData;
+import com.github.mikephil.charting.data.LineDataSet;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -26,6 +32,9 @@ import java.util.UUID;
 public class DataView extends AppCompatActivity {
     private static final UUID SERIAL_PORT_COMMUNICATION_TYPE = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private String deviceAddress;
+    private LineChart chart;
+    private LineChart chart2;
+
 
     private DataParser dataParser = new DataParser();
 
@@ -42,6 +51,41 @@ public class DataView extends AppCompatActivity {
         deviceAddress = intent.getStringExtra(MainActivity.DEVICE_ADRESS);
 
         dataTextView = (TextView) findViewById(R.id.dataTextView);
+        chart = (LineChart) findViewById(R.id.chart);
+        chart2 = (LineChart) findViewById(R.id.chart2);
+        List<Entry> entries = new ArrayList<>();
+        List<Entry> entries2 = new ArrayList<>();
+
+
+        try {
+            File file = new File(getApplicationContext().getFilesDir(), fileDateFromat.format(Calendar.getInstance().getTime()) + ".txt");
+            BufferedReader input = new BufferedReader(new FileReader(file));
+            int index = 1;
+            while (true) {
+                String date = input.readLine();
+                String sensorData = input.readLine();
+                if (date == null || sensorData == null) break;
+                dataParser.parseLine(sensorData);
+                if (dataParser.isDataValid()) {
+                    entries.add(new Entry(index, dataParser.getTemperature(), date));
+                    entries2.add(new Entry(index, dataParser.getPressure(), date));
+                    index++;
+                }
+            }
+            input.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        LineDataSet set = new LineDataSet(entries, "Label");
+        LineData data = new LineData(set);
+        chart.setData(data);
+        chart.invalidate();
+        LineDataSet set2 = new LineDataSet(entries2, "Label21");
+        LineData data2 = new LineData(set2);
+        chart2.setData(data2);
+        chart2.invalidate();
+
         new DeviceConnectionTask().execute();
     }
 
@@ -49,8 +93,8 @@ public class DataView extends AppCompatActivity {
         StringBuilder builder = new StringBuilder();
 
         Calendar calendar = Calendar.getInstance();
-        calendar.add(Calendar.MINUTE, -dataSet.size());
 
+        calendar.add(Calendar.MINUTE, -dataSet.size());
         for (String data : dataSet) {
             dataParser.parseLine(data);
             if (!dataParser.isDataValid()) continue;
@@ -60,11 +104,9 @@ public class DataView extends AppCompatActivity {
                 file.createNewFile();
                 BufferedWriter output = new BufferedWriter(new FileWriter(file, true));
 
-                int hours = calendar.get(Calendar.HOUR_OF_DAY);
-                int minutes = calendar.get(Calendar.MINUTE);
-
-                output.write(Integer.toString(hours) + ":" + Integer.toString(minutes) + "\n");
+                output.write(String.valueOf(calendar.getTimeInMillis()) + "\n");
                 output.write(data + "\n");
+                output.close();
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -75,6 +117,7 @@ public class DataView extends AppCompatActivity {
             builder.append("\n");
             calendar.add(Calendar.MINUTE, 1);
         }
+
         dataTextView.setText(builder.toString());
     }
 
