@@ -4,6 +4,7 @@ public class DataParser {
     private boolean dataValid;
     private float pressure;
     private float temperature;
+    private float humidity;
 
     public void parseLine(String line) {
         if (line == null) {
@@ -11,9 +12,11 @@ public class DataParser {
             return;
         }
         String[] parts = line.split(";");
+        pressure = Float.parseFloat(parts[0]);
+
         try {
-            pressure = Float.parseFloat(parts[0]);
             temperature = Float.parseFloat(parts[1]);
+            humidity = Float.parseFloat(parts[2]);
             dataValid = true;
         } catch (NumberFormatException e) {
             e.printStackTrace();
@@ -33,7 +36,11 @@ public class DataParser {
         return temperature;
     }
 
+    public float getHumidity(){
+        return humidity;
+    }
+
     public String currentToString() {
-        return "Pressure " + pressure + " Temperature " + temperature;
+        return "Pressure " + pressure + " Temperature " + temperature + " Humidity " + humidity;
     }
 }
