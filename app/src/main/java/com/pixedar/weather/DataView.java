@@ -40,6 +40,7 @@ public class DataView extends AppCompatActivity {
     private LineChart chart;
     private LineChart chart2;
     private LineChart chart3;
+    private LineChart chart4;
 
 
     private DataParser dataParser = new DataParser();
@@ -79,17 +80,22 @@ public class DataView extends AppCompatActivity {
         chart3 = (LineChart) findViewById(R.id.chart3);
         chart3.setDescription("humidity");
 
+                chart4 = (LineChart) findViewById(R.id.chart4);
+                chart4.setDescription("light");
+
 
 
         chart.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
         chart2.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
         chart3.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
+                chart4.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
 
 
 
         List<Entry> entries = new ArrayList<>();
         List<Entry> entries2 = new ArrayList<>();
         List<Entry> entries3 = new ArrayList<>();
+                List<Entry> entries4 = new ArrayList<>();
 
 
 
@@ -117,6 +123,7 @@ public class DataView extends AppCompatActivity {
                         pressTimer = 0;
                     }
                     entries3.add(new Entry(tempIndex, dataParser.getHumidity()));
+                    entries4.add(new Entry(tempIndex, dataParser.getLight()/10));
                     tempIndex++;
                     pressTimer++;
 
@@ -182,6 +189,23 @@ public class DataView extends AppCompatActivity {
                 return 0;
             }
         });
+                XAxis xAxis4 = chart4.getXAxis();
+                xAxis4.setValueFormatter(new AxisValueFormatter() {
+
+                    private SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+
+                    @Override
+                    public String getFormattedValue(float value, AxisBase axis) {
+                        Calendar cal = Calendar.getInstance();
+                        cal.add(Calendar.MINUTE, (int) value * (-1));
+                        return format.format(cal.getTime());
+                    }
+
+                    @Override
+                    public int getDecimalDigits() {
+                        return 0;
+                    }
+                });
 
         LineDataSet set = new LineDataSet(entries, "Label");
         set.setMode(LineDataSet.Mode.HORIZONTAL_BEZIER);
@@ -209,6 +233,15 @@ public class DataView extends AppCompatActivity {
         LineData data3 = new LineData(set3);
         chart3.setData(data3);
         chart3.invalidate();
+
+                LineDataSet set4 = new LineDataSet(entries4, "Label21");
+                set4.setMode(LineDataSet.Mode.HORIZONTAL_BEZIER);
+                set4.setDrawCircles(false);
+                set4.setDrawFilled(true);
+                set4.setDrawValues(false);
+                LineData data4 = new LineData(set4);
+                chart4.setData(data4);
+                chart4.invalidate();
 
 
        // chart.animateXY(1500, 1500);

@@ -29,6 +29,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="256dp" />
 
+
+            <com.github.mikephil.charting.charts.LineChart xmlns:chart="http://schemas.android.com/apk/res-auto"
+                android:id="@+id/chart4"
+                android:layout_width="match_parent"
+                android:layout_height="256dp" />
+
             <com.github.mikephil.charting.charts.LineChart xmlns:chart="http://schemas.android.com/apk/res-auto"
                 android:id="@+id/chart2"
                 android:layout_width="match_parent"
