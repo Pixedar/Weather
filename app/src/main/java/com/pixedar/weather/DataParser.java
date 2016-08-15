@@ -12,9 +12,10 @@ public class DataParser {
             return;
         }
         String[] parts = line.split(";");
-        pressure = Float.parseFloat(parts[0]);
+
 
         try {
+            pressure = Float.parseFloat(parts[0]);
             temperature = Float.parseFloat(parts[1]);
             humidity = Float.parseFloat(parts[2]);
             dataValid = true;

@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -47,11 +48,20 @@ public class DataView extends AppCompatActivity {
     private SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm", Locale.US);
     private SimpleDateFormat fileDateFromat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
+    Handler handler = new Handler();
+   public Runnable refresh;
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data_view);
+        refresh = new Runnable() {
+            public void run() {
+
 
         Intent intent = getIntent();
         deviceAddress = intent.getStringExtra(MainActivity.DEVICE_ADRESS);
@@ -90,7 +100,7 @@ public class DataView extends AppCompatActivity {
 
             int pressTimer = 1;
             int pressIndex = 1;
-            
+
 
             while (true) {
                 String date = input.readLine();
@@ -201,13 +211,16 @@ public class DataView extends AppCompatActivity {
         chart3.invalidate();
 
 
-        chart.animateXY(1500, 1500);
-        chart2.animateXY(1500, 1500);
-        chart3.animateXY(1500, 1500);
+       // chart.animateXY(1500, 1500);
+       // chart2.animateXY(1500, 1500);
+      //  chart3.animateXY(1500, 1500);
 
         new DeviceConnectionTask().execute();
 
-
+                handler.postDelayed(refresh, 60000);
+            }
+        };
+        handler.post(refresh);
 
     }
 
