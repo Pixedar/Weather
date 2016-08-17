@@ -50,7 +50,8 @@ public class DataView extends AppCompatActivity {
     private SimpleDateFormat fileDateFromat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
     Handler handler = new Handler();
-   public Runnable refresh;
+     public Runnable refresh;
+    private boolean anim = true;
 
 
 
@@ -60,8 +61,7 @@ public class DataView extends AppCompatActivity {
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_data_view);
-        refresh = new Runnable() {
-            public void run() {
+
 
 
         Intent intent = getIntent();
@@ -72,16 +72,22 @@ public class DataView extends AppCompatActivity {
 
         chart = (LineChart) findViewById(R.id.chart);
         chart.setDescription("Temperature");
+        chart.getLegend().setEnabled(false);
+
 
         chart2 = (LineChart) findViewById(R.id.chart2);
         chart2.setDescription("Pressure");
+        chart2.getLegend().setEnabled(false);
+
 
 
         chart3 = (LineChart) findViewById(R.id.chart3);
-        chart3.setDescription("humidity");
+        chart3.setDescription("Humidity");
+        chart3.getLegend().setEnabled(false);
 
-                chart4 = (LineChart) findViewById(R.id.chart4);
-                chart4.setDescription("light");
+        chart4 = (LineChart) findViewById(R.id.chart4);
+        chart4.setDescription("Light");
+        chart4.getLegend().setEnabled(false);
 
 
 
@@ -89,24 +95,27 @@ public class DataView extends AppCompatActivity {
         chart2.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
         chart3.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
                 chart4.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
-
-
+        anim = true;
+        refresh = new Runnable() {
+            public void run() {
 
         List<Entry> entries = new ArrayList<>();
         List<Entry> entries2 = new ArrayList<>();
         List<Entry> entries3 = new ArrayList<>();
-                List<Entry> entries4 = new ArrayList<>();
+        List<Entry> entries4 = new ArrayList<>();
 
 
 
-        int tempIndex = 1;
+        int index = 1;
+                int pressTimer = 1;
+                int pressIndex = 1;
         try {
             File file = new File(getApplicationContext().getFilesDir(), fileDateFromat.format(Calendar.getInstance().getTime()) + ".txt");
             BufferedReader input = new BufferedReader(new FileReader(file));
 
-            int pressTimer = 1;
-            int pressIndex = 1;
 
+            float temp;
+            float lastTemp =20;
 
             while (true) {
                 String date = input.readLine();
@@ -115,16 +124,23 @@ public class DataView extends AppCompatActivity {
                 if (date == null || sensorData == null) break;
                 dataParser.parseLine(sensorData);
                 if (dataParser.isDataValid()) {
-                    // map.put(tempIndex,date)
-                    entries.add(new Entry(tempIndex, dataParser.getTemperature()));
+                    // map.put(index,date)
+                    temp = dataParser.getTemperature();
+                    if(temp != 85){
+                        entries.add(new Entry(index,temp));
+                        lastTemp = temp;
+                    }else{
+                        entries.add(new Entry(index,lastTemp));
+                    }
+
                     if(pressTimer == 60){
                         pressIndex++;
                         entries2.add(new Entry(pressIndex, dataParser.getPressure()));
                         pressTimer = 0;
                     }
-                    entries3.add(new Entry(tempIndex, dataParser.getHumidity()));
-                    entries4.add(new Entry(tempIndex, dataParser.getLight()/10));
-                    tempIndex++;
+                    entries3.add(new Entry(index, dataParser.getHumidity()));
+                    entries4.add(new Entry(index, dataParser.getLight()/10));
+                    index++;
                     pressTimer++;
 
                 }
@@ -134,7 +150,8 @@ public class DataView extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        final int lastTempIndex = tempIndex;
+        final int lastIndex = index;
+                final int lastPressIndex = pressIndex;
         XAxis xAxis = chart.getXAxis();
         xAxis.setValueFormatter(new AxisValueFormatter() {
 
@@ -143,7 +160,7 @@ public class DataView extends AppCompatActivity {
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
                 Calendar cal = Calendar.getInstance();
-                cal.add(Calendar.MINUTE, (int)(lastTempIndex -value)*(-1));
+                cal.add(Calendar.MINUTE, (int)(lastIndex -value)*(-1));
                 return format.format(cal.getTime());
 
             }
@@ -162,7 +179,7 @@ public class DataView extends AppCompatActivity {
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
                 Calendar cal = Calendar.getInstance();
-                cal.add(Calendar.HOUR_OF_DAY, (int) value * (-1));
+                cal.add(Calendar.HOUR_OF_DAY, (int)(lastPressIndex -value)*(-1));
                 return format.format(cal.getTime());
             }
 
@@ -171,7 +188,7 @@ public class DataView extends AppCompatActivity {
                 return 0;
             }
         });
-
+                chart2.getXAxis().setGranularity(2);
         XAxis xAxis3 = chart3.getXAxis();
         xAxis3.setValueFormatter(new AxisValueFormatter() {
 
@@ -180,7 +197,7 @@ public class DataView extends AppCompatActivity {
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
                 Calendar cal = Calendar.getInstance();
-                cal.add(Calendar.MINUTE, (int) value * (-1));
+                cal.add(Calendar.MINUTE, (int)(lastIndex -value)*(-1));
                 return format.format(cal.getTime());
             }
 
@@ -197,7 +214,7 @@ public class DataView extends AppCompatActivity {
                     @Override
                     public String getFormattedValue(float value, AxisBase axis) {
                         Calendar cal = Calendar.getInstance();
-                        cal.add(Calendar.MINUTE, (int) value * (-1));
+                        cal.add(Calendar.MINUTE, (int)(lastIndex -value)*(-1));
                         return format.format(cal.getTime());
                     }
 
@@ -212,6 +229,7 @@ public class DataView extends AppCompatActivity {
         set.setDrawFilled(true);
         set.setDrawCircles(false);
         set.setDrawValues(false);
+
         LineData data = new LineData(set);
         chart.setData(data);
         chart.invalidate();
@@ -243,14 +261,18 @@ public class DataView extends AppCompatActivity {
                 chart4.setData(data4);
                 chart4.invalidate();
 
+        if(anim){
+             chart.animateXY(1500, 1500);
+             chart2.animateXY(1500, 1500);
+            chart3.animateXY(1500, 1500);
+            anim = false;
+        }
 
-       // chart.animateXY(1500, 1500);
-       // chart2.animateXY(1500, 1500);
-      //  chart3.animateXY(1500, 1500);
 
         new DeviceConnectionTask().execute();
 
-                handler.postDelayed(refresh, 60000);
+                handler.postDelayed(refresh,60000);
+
             }
         };
         handler.post(refresh);
@@ -333,12 +355,12 @@ public class DataView extends AppCompatActivity {
         @Override
         protected void onPostExecute(List<String> data) {
             if (data == null) {
-                showMessage("Transfer error");
+              //  showMessage("Transfer error");
                 //finish();
                 return;
             }
             if (data.size() == 0) {
-                showMessage("No data received");
+               // showMessage("No data received");
                 return;
             }
             //progressDialog.dismiss();
