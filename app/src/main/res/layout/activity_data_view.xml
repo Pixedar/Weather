@@ -20,6 +20,7 @@
             android:orientation="vertical">
 
 
+
             <com.github.mikephil.charting.charts.LineChart xmlns:chart="http://schemas.android.com/apk/res-auto"
                 android:id="@+id/chart"
                 android:layout_width="match_parent"
@@ -41,12 +42,12 @@
                 android:layout_width="match_parent"
                 android:layout_height="270dp" />
 
-
             <SeekBar
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/seekBar"
                 android:layout_gravity="center_horizontal" />
+
 
             <TextView
                 android:id="@+id/dataTextView"

@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.v7.app.AppCompatActivity;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -41,6 +42,8 @@ public class DataView extends AppCompatActivity {
     private LineChart chart2;
     private LineChart chart3;
     private LineChart chart4;
+    private SeekBar slider;
+    private int status = 0;
 
 
     private DataParser dataParser = new DataParser();
@@ -69,6 +72,29 @@ public class DataView extends AppCompatActivity {
 
 
         dataTextView = (TextView) findViewById(R.id.dataTextView);
+        slider = (SeekBar) findViewById(R.id.seekBar);
+        slider.incrementProgressBy(1);
+        slider.setMax(3);
+        slider.setProgress(0);
+
+        slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                status = progress;
+
+                refreshData();
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
 
         chart = (LineChart) findViewById(R.id.chart);
         chart.setDescription("Temperature");
@@ -99,6 +125,19 @@ public class DataView extends AppCompatActivity {
         refresh = new Runnable() {
             public void run() {
 
+                refreshData();
+
+                handler.postDelayed(refresh,60000);
+
+            }
+        };
+        handler.post(refresh);
+
+    }
+
+   
+    private void refreshData(){
+
         List<Entry> entries = new ArrayList<>();
         List<Entry> entries2 = new ArrayList<>();
         List<Entry> entries3 = new ArrayList<>();
@@ -106,25 +145,83 @@ public class DataView extends AppCompatActivity {
 
 
 
+
         int index = 1;
-                int pressTimer = 1;
-                int pressIndex = 1;
+        int pressTimer = 1;
+        int pressIndex = 1;
+        float temp;
+        float lastTemp =20;
+        
+        int statusIndex= 1;
         try {
+
             File file = new File(getApplicationContext().getFilesDir(), fileDateFromat.format(Calendar.getInstance().getTime()) + ".txt");
             BufferedReader input = new BufferedReader(new FileReader(file));
 
 
-            float temp;
-            float lastTemp =20;
-
+            
+            
             while (true) {
                 String date = input.readLine();
                 String sensorData = input.readLine();
 
-                if (date == null || sensorData == null) break;
+                if (date == null || sensorData == null){
+                    if(status == 0){
+                        break;
+                    }
+                    if(status == 1){
+                        if(statusIndex> 6){
+                            break;
+                        }
+                       Calendar cal =  Calendar.getInstance();
+                        cal.add(Calendar.HOUR, -statusIndex*24);
+                        try{
+                            file= new File(getApplicationContext().getFilesDir(), fileDateFromat.format(cal.getTime()) + ".txt");
+                            input = new BufferedReader(new FileReader(file));
+                            statusIndex++;
+                        }
+                        catch (IOException e){
+                            e.printStackTrace();
+                            break;
+
+                        }
+                    }
+                    if(status == 2){
+                        if(statusIndex> 31){
+                            break;
+                        }
+                        Calendar cal =  Calendar.getInstance();
+                        cal.add(Calendar.HOUR, -statusIndex*24);
+                        try{
+                            file= new File(getApplicationContext().getFilesDir(), fileDateFromat.format(cal.getTime()) + ".txt");
+                            input = new BufferedReader(new FileReader(file));
+                            statusIndex++;
+                        }
+                        catch (IOException e){
+                            e.printStackTrace();
+                            break;
+
+                        }
+                    }
+                    if(status == 3){
+
+                        Calendar cal =  Calendar.getInstance();
+                        cal.add(Calendar.HOUR, -statusIndex*24);
+                        try{
+                            file= new File(getApplicationContext().getFilesDir(), fileDateFromat.format(cal.getTime()) + ".txt");
+                            input = new BufferedReader(new FileReader(file));
+
+                        }
+                        catch (IOException e){
+                            e.printStackTrace();
+                            break;
+
+                        }
+                    }
+                }
+
                 dataParser.parseLine(sensorData);
                 if (dataParser.isDataValid()) {
-                    // map.put(index,date)
                     temp = dataParser.getTemperature();
                     if(temp != 85){
                         entries.add(new Entry(index,temp));
@@ -145,17 +242,43 @@ public class DataView extends AppCompatActivity {
 
                 }
             }
+            setTitle("Weather                                       " + (int)dataParser.getTemperature() + "°C" );
             input.close();
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         final int lastIndex = index;
-                final int lastPressIndex = pressIndex;
+        final int lastPressIndex = pressIndex;
         XAxis xAxis = chart.getXAxis();
+        XAxis xAxis2 = chart2.getXAxis();
+        XAxis xAxis3 = chart3.getXAxis();
+        XAxis xAxis4 = chart4.getXAxis();
+        xAxis.setGranularity(0);
+        xAxis2.setGranularity(2);
+        xAxis3.setGranularity(0);
+        xAxis4.setGranularity(0);
+        SimpleDateFormat f = new SimpleDateFormat("HH:mm");
+        if(status ==1){
+            f = new SimpleDateFormat("EEEE");
+            xAxis.setGranularity(1440);
+            xAxis2.setGranularity(1440);
+            xAxis3.setGranularity(1440);
+            xAxis4.setGranularity(1440);
+        }
+        if(status == 2 || status == 3){
+            f = new SimpleDateFormat("dd.MM");
+            xAxis.setGranularity(1440);
+            xAxis2.setGranularity(1440);
+            xAxis3.setGranularity(1440);
+            xAxis4.setGranularity(1440);
+        }
+        final SimpleDateFormat format = f;
+
+
         xAxis.setValueFormatter(new AxisValueFormatter() {
 
-            private SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+           // private SimpleDateFormat format = new SimpleDateFormat("HH:mm");
 
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
@@ -171,10 +294,10 @@ public class DataView extends AppCompatActivity {
             }
         });
 
-        XAxis xAxis2 = chart2.getXAxis();
+
         xAxis2.setValueFormatter(new AxisValueFormatter() {
 
-            private SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+            
 
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
@@ -188,11 +311,11 @@ public class DataView extends AppCompatActivity {
                 return 0;
             }
         });
-                chart2.getXAxis().setGranularity(2);
-        XAxis xAxis3 = chart3.getXAxis();
+        
+
         xAxis3.setValueFormatter(new AxisValueFormatter() {
 
-            private SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+            
 
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
@@ -206,23 +329,23 @@ public class DataView extends AppCompatActivity {
                 return 0;
             }
         });
-                XAxis xAxis4 = chart4.getXAxis();
-                xAxis4.setValueFormatter(new AxisValueFormatter() {
 
-                    private SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+        xAxis4.setValueFormatter(new AxisValueFormatter() {
 
-                    @Override
-                    public String getFormattedValue(float value, AxisBase axis) {
-                        Calendar cal = Calendar.getInstance();
-                        cal.add(Calendar.MINUTE, (int)(lastIndex -value)*(-1));
-                        return format.format(cal.getTime());
-                    }
+            
 
-                    @Override
-                    public int getDecimalDigits() {
-                        return 0;
-                    }
-                });
+            @Override
+            public String getFormattedValue(float value, AxisBase axis) {
+                Calendar cal = Calendar.getInstance();
+                cal.add(Calendar.MINUTE, (int)(lastIndex -value)*(-1));
+                return format.format(cal.getTime());
+            }
+
+            @Override
+            public int getDecimalDigits() {
+                return 0;
+            }
+        });
 
         LineDataSet set = new LineDataSet(entries, "Label");
         set.setMode(LineDataSet.Mode.HORIZONTAL_BEZIER);
@@ -252,32 +375,26 @@ public class DataView extends AppCompatActivity {
         chart3.setData(data3);
         chart3.invalidate();
 
-                LineDataSet set4 = new LineDataSet(entries4, "Label21");
-                set4.setMode(LineDataSet.Mode.HORIZONTAL_BEZIER);
-                set4.setDrawCircles(false);
-                set4.setDrawFilled(true);
-                set4.setDrawValues(false);
-                LineData data4 = new LineData(set4);
-                chart4.setData(data4);
-                chart4.invalidate();
+        LineDataSet set4 = new LineDataSet(entries4, "Label21");
+        set4.setMode(LineDataSet.Mode.HORIZONTAL_BEZIER);
+        set4.setDrawCircles(false);
+        set4.setDrawFilled(true);
+        set4.setDrawValues(false);
+        LineData data4 = new LineData(set4);
+        chart4.setData(data4);
+        chart4.invalidate();
 
         if(anim){
-             chart.animateXY(1500, 1500);
-             chart2.animateXY(1500, 1500);
+            chart.animateXY(1500, 1500);
+            chart2.animateXY(1500, 1500);
             chart3.animateXY(1500, 1500);
             anim = false;
         }
 
 
         new DeviceConnectionTask().execute();
-
-                handler.postDelayed(refresh,60000);
-
-            }
-        };
-        handler.post(refresh);
-
     }
+
 
     private void processNewData(List<String> dataSet) {
         StringBuilder builder = new StringBuilder();
@@ -309,6 +426,7 @@ public class DataView extends AppCompatActivity {
         }
 
         dataTextView.setText(builder.toString());
+
     }
 
     private class DeviceConnectionTask extends AsyncTask<Void, Void, List<String>> {
