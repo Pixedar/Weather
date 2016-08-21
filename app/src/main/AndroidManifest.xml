@@ -3,7 +3,6 @@
     package="com.pixedar.weather">
 
     <uses-permission android:name="android.permission.BLUETOOTH" />
-
     <uses-permission android:name="android.permission.BLUETOOTH_ADMIN" />
 
     <application
@@ -19,7 +18,8 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".DataView"></activity>
+        <activity android:name=".DataView" />
+        <activity android:name=".DataView2"></activity>
     </application>
 
 </manifest>
