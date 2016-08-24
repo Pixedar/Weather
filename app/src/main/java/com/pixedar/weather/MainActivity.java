@@ -75,7 +75,8 @@ public class MainActivity extends AppCompatActivity {
             String info = ((TextView) view).getText().toString();
             String address = info.substring(info.length() - 17);
 
-            Intent intent = new Intent(MainActivity.this, DataView.class);
+           // Intent intent = new Intent(MainActivity.this, DataView.class);
+            Intent intent = new Intent(MainActivity.this, MainDataView.class);
             intent.putExtra(DEVICE_ADRESS, address);
             startActivity(intent);
         }

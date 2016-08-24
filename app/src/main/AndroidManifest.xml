@@ -19,7 +19,9 @@
             </intent-filter>
         </activity>
         <activity android:name=".DataView" />
-        <activity android:name=".DataView2"></activity>
+        <activity android:name=".MainDataView" />
+        <activity android:name=".Prop" />
+        <activity android:name=".DataView3"></activity>
     </application>
 
 </manifest>

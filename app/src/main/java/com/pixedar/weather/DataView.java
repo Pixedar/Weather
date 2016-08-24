@@ -1,19 +1,15 @@
 package com.pixedar.weather;
 
-import android.bluetooth.BluetoothAdapter;
-import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
-import android.content.Intent;
 import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v7.app.AppCompatActivity;
-import android.widget.CompoundButton;
+import android.support.v4.app.Fragment;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.DatePicker;
 import android.widget.Switch;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import com.github.mikephil.charting.charts.LineChart;
 import com.github.mikephil.charting.components.AxisBase;
@@ -23,7 +19,6 @@ import com.github.mikephil.charting.data.Entry;
 import com.github.mikephil.charting.data.LineData;
 import com.github.mikephil.charting.data.LineDataSet;
 import com.github.mikephil.charting.formatter.AxisValueFormatter;
-import com.github.mikephil.charting.interfaces.datasets.ILineDataSet;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -31,7 +26,6 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -40,7 +34,7 @@ import java.util.Locale;
 import java.util.Random;
 import java.util.UUID;
 
-public class DataView extends AppCompatActivity{
+public class DataView extends Fragment implements FragmentInterface{
     private static final UUID SERIAL_PORT_COMMUNICATION_TYPE = UUID.fromString("00001101-0000-1000-8000-00805F9B34FB");
     private String deviceAddress;
     private LineChart chart;
@@ -51,197 +45,223 @@ public class DataView extends AppCompatActivity{
 
     private DataParser dataParser = new DataParser();
 
-    public static TextView dataTextView;
     private SimpleDateFormat dateFormat = new SimpleDateFormat("HH:mm", Locale.US);
     private SimpleDateFormat fileDateFromat = new SimpleDateFormat("yyyy-MM-dd", Locale.US);
 
     Handler handler = new Handler();
-     public Runnable refresh;
+    public Runnable refresh;
     private boolean anim = true;
 
     private DatePicker datePicker;
     private Switch setMulti;
-    public static boolean multiIsChecked;
-    private Calendar calendar = Calendar.getInstance();
-    final List<Calendar> dates = new ArrayList<>();
 
-    ArrayList<ILineDataSet> dataSets = new ArrayList<ILineDataSet>();
+    private Prop prop = new Prop();
+
     Random random = new Random();
+    String date ="100000000";
+    public static float globalMaxTemp = -50;
+    public static float globalMinTemp =50;
+    public static Calendar maxTempCal = Calendar.getInstance();
+    public static Calendar minTempCal = Calendar.getInstance();
+
+    private TextView textView;
+    private TextView textView2;
+
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,Bundle savedInstanceState) {
 
 
-        super.onCreate(savedInstanceState);
+        View rootView = inflater.inflate(R.layout.activity_data_view, container, false);
 
-        setContentView(R.layout.activity_data_view);
+        textView = (TextView) rootView.findViewById(R.id.textView3);
+        textView2 = (TextView) rootView.findViewById(R.id.textView4);
 
-        Intent intent = getIntent();
-        deviceAddress = intent.getStringExtra(MainActivity.DEVICE_ADRESS);
-
-
-
-
-        dataTextView = (TextView) findViewById(R.id.dataTextView);
-        datePicker = (DatePicker) findViewById(R.id.datePicker);
-        setMulti = (Switch) findViewById(R.id.switch1);
-
-        setMulti.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                multiIsChecked = isChecked;
-                if(buttonView.isShown()){
-                    refreshData();
-                }
-                if(!isChecked){
-                    dataSets = new ArrayList<ILineDataSet>();
-                }
-            }
-        });
-        Calendar c= Calendar.getInstance();
-
-
-
-
-        datePicker.init(c.YEAR, c.MONTH, c.DAY_OF_MONTH, new DatePicker.OnDateChangedListener() {
-            @Override
-            public void onDateChanged(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
-                calendar.set(year,monthOfYear,dayOfMonth);
-                if(multiIsChecked){
-                    dates.add(calendar);
-                }
-                if(view.isShown()){
-                    refreshData();
-                }
-            }
-        });
-        datePicker.setMaxDate(c.getTimeInMillis());
-        c.add(Calendar.DAY_OF_MONTH,-7);
-        datePicker.setMinDate(c.getTimeInMillis());
-
-
-        chart = (LineChart) findViewById(R.id.chart);
-        chart.setDescription("Temperature");
+        chart = (LineChart) rootView.findViewById(R.id.chart);
+        chart.setDescription("Temperatura");
         chart.getLegend().setEnabled(false);
 
 
-        chart2 = (LineChart) findViewById(R.id.chart2);
-        chart2.setDescription("Pressure");
+        chart2 = (LineChart) rootView.findViewById(R.id.chart2);
+        chart2.setDescription("Ćiśnienie");
         chart2.getLegend().setEnabled(false);
 
 
-
-        chart3 = (LineChart) findViewById(R.id.chart3);
-        chart3.setDescription("Humidity");
+        chart3 = (LineChart) rootView.findViewById(R.id.chart3);
+        chart3.setDescription("Wilgotność");
         chart3.getLegend().setEnabled(false);
 
-        chart4 = (LineChart) findViewById(R.id.chart4);
-        chart4.setDescription("Light");
+        chart4 = (LineChart) rootView.findViewById(R.id.chart4);
+        chart4.setDescription("Natężenie światła");
         chart4.getLegend().setEnabled(false);
-
 
 
         chart.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
         chart2.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
         chart3.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
-                chart4.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
+        chart4.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
         anim = true;
-        refresh = new Runnable() {
-            public void run() {
+        try{
+            File file = new File(getActivity().getApplicationContext().getFilesDir(), "records.txt");
+            BufferedReader input = new BufferedReader(new FileReader(file));
+            globalMaxTemp = Float.valueOf(input.readLine());
+            globalMinTemp = Float.valueOf(input.readLine());
+            maxTempCal.setTimeInMillis(Long.valueOf(input.readLine()));
+            minTempCal.setTimeInMillis(Long.valueOf(input.readLine()));
+        }catch(IOException e){
 
-                refreshData();
+        }
 
-                handler.postDelayed(refresh,60000);
-
-            }
-        };
-        handler.post(refresh);
-
+        refreshData();
+        return rootView;
     }
 
-   
-    private void refreshData(){
+
+    private void refreshData() {
 
         List<Entry> entries = new ArrayList<>();
         List<Entry> entries2 = new ArrayList<>();
         List<Entry> entries3 = new ArrayList<>();
         List<Entry> entries4 = new ArrayList<>();
 
-        if(multiIsChecked){
+        if (prop.multiIsChecked) {
             chart.getLegend().setEnabled(true);
-            chart2.getLegend().setEnabled(true);
-            chart3.getLegend().setEnabled(true);
-            chart4.getLegend().setEnabled(true);
-        }else{
-            chart.getLegend().setEnabled(false);
-            chart2.getLegend().setEnabled(false);
-            chart3.getLegend().setEnabled(false);
-            chart4.getLegend().setEnabled(false);
+        } else {
+           chart.getLegend().setEnabled(false);
         }
 
-
-        int index = 1;
+        int index = 0;
         int pressTimer = 1;
         int pressIndex = 1;
         float temp;
-        float lastTemp =20;
+        float lastTemp = 20;
+        float sumTemp = 0;
+        float maxTemp = -50;
+        float sumHum =0;
+        float sumLight =0;
+        float minTemp = 50;
         File file;
         try {
-
-            file = new File(getApplicationContext().getFilesDir(), fileDateFromat.format(calendar.getTime()) + ".txt");
+            //rootView.getContext().getApplicationContext()
+            file = new File(getActivity().getApplicationContext().getFilesDir(), fileDateFromat.format(prop.calendar.getTime()) + ".txt");
             BufferedReader input = new BufferedReader(new FileReader(file));
 
 
-            
-            
             while (true) {
-                String date = input.readLine();
+                 String da = input.readLine();
                 String sensorData = input.readLine();
 
-                if (date == null || sensorData == null){
-                    if(!multiIsChecked){
+                if (da == null || sensorData == null) {
+                    if (!prop.multiIsChecked) {
                         break;
-                    }else{
+                    } else {
                         SimpleDateFormat sdf = new SimpleDateFormat("MM dd");
-                        String d = sdf.format(calendar.getTime()).toString();
-                        LineDataSet set = new LineDataSet(entries,d);
+                        String d = sdf.format(prop.calendar.getTime()).toString();
+                        LineDataSet set = new LineDataSet(entries, d);
                         set.setMode(LineDataSet.Mode.CUBIC_BEZIER);
                         set.setDrawCircles(false);
                         set.setDrawValues(false);
-                        set.setColor(Color.argb(255,random.nextInt(252)+1,random.nextInt(252)+1,random.nextInt(252)+1));
-                        dataSets.add(set);
+                        set.setDrawFilled(true);
+                        int c =Color.argb(255, random.nextInt(252) + 1, random.nextInt(252) + 1, random.nextInt(252) + 1);
+                        set.setColor(c);
+                        set.setFillColor(c);
+                        set.setFillAlpha(100);
+                            try{
+                                prop.dataSets.set(1,set);
+                            }catch(IndexOutOfBoundsException e){
+                                prop.dataSets.add(set);
+                            }
                         break;
-
                     }
-
                 }
-
+                date = da;
                 dataParser.parseLine(sensorData);
                 if (dataParser.isDataValid()) {
                     temp = dataParser.getTemperature();
-                    if(temp != 85){
-                        entries.add(new Entry(index,temp));
+                    if (temp != 85) {
+                        entries.add(new Entry(index, temp));
                         lastTemp = temp;
-                    }else{
-                        entries.add(new Entry(index,lastTemp));
+                        sumTemp = sumTemp + temp;
+                        if(temp > maxTemp){
+                            maxTemp = temp;
+                        }
+                        if(temp < minTemp){
+                            minTemp = temp;
+                        }
+                    } else {
+                        entries.add(new Entry(index, lastTemp));
                     }
 
-                    if(pressTimer == 60){
+                    if (pressTimer == 60) {
                         pressIndex++;
                         entries2.add(new Entry(pressIndex, dataParser.getPressure()));
                         pressTimer = 0;
                     }
                     entries3.add(new Entry(index, dataParser.getHumidity()));
-                    entries4.add(new Entry(index, dataParser.getLight()/10));
+                    entries4.add(new Entry(index, dataParser.getLight() / 10));
                     index++;
                     pressTimer++;
-
+                    sumHum = sumHum + dataParser.getHumidity();
+                    sumLight = sumLight + dataParser.getLight();
                 }
             }
-            setTitle("Weather                                       " + (int)dataParser.getTemperature() + "°C" );
             input.close();
+
         } catch (IOException e) {
             e.printStackTrace();
         }
+        StringBuilder st = new StringBuilder();
+        st.append(String.valueOf(dataParser.getTemperature()) + "°C   " + String.valueOf(dataParser.getHumidity()) + "%   " + String.valueOf(dataParser.getPressure()) + "Hpa");
+        textView.setText(st.toString());
+
+
+        StringBuilder st2 = new StringBuilder();
+        st2.append("Max " + String.valueOf(maxTemp) + "°C " +" Min " + String.valueOf(minTemp) + "°C");
+        textView2.setText(st2.toString());
+        textView2.setTextSize(10.0f);
+        try {
+            File file2 = new File(getActivity().getApplicationContext().getFilesDir(), fileDateFromat.format(prop.calendar.getTime()) + "DD"+".txt");
+            file2.createNewFile();
+            BufferedWriter output = new BufferedWriter(new FileWriter(file2, false));
+            output.write(sumTemp/index+ "\n");
+            output.write(maxTemp+ "\n");
+            output.write(sumHum/index+ "\n");
+            output.write(sumLight/index+ "\n");
+
+            output.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        if(maxTemp > globalMaxTemp|| minTemp < globalMinTemp){
+            try{
+                File file3 = new File(getActivity().getApplicationContext().getFilesDir(),"records.txt");
+                file3.createNewFile();
+                BufferedWriter output = new BufferedWriter(new FileWriter(file3, false));
+                output.write(maxTemp+ "\n");
+                output.write(minTemp+ "\n");
+                if(maxTemp > globalMaxTemp){
+                    output.write(String.valueOf(Prop.calendar.getTimeInMillis())+ "\n");
+                    globalMaxTemp = maxTemp;
+                    maxTempCal.setTime(Prop.calendar.getTime());
+                }else{
+                    output.write(String.valueOf(maxTempCal.getTimeInMillis())+ "\n");
+                }
+                if(minTemp < globalMinTemp){
+                    output.write(String.valueOf(Prop.calendar.getTimeInMillis())+ "\n");
+                    globalMinTemp = minTemp;
+                    minTempCal.setTime(Prop.calendar.getTime());
+                }else{
+                    output.write(String.valueOf(minTempCal.getTimeInMillis())+ "\n");
+
+                }
+
+
+                output.close();
+            }catch(IOException e){
+
+            }
+        }
+
+
 
         final int lastIndex = index;
         final int lastPressIndex = pressIndex;
@@ -250,18 +270,21 @@ public class DataView extends AppCompatActivity{
         XAxis xAxis3 = chart3.getXAxis();
         XAxis xAxis4 = chart4.getXAxis();
 
-        xAxis2.setGranularity(2);
+        xAxis2.setGranularity(1);
         final SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+        final Calendar c = Calendar.getInstance();
+        c.setTimeInMillis(Long.valueOf(date));
 
 
         xAxis.setValueFormatter(new AxisValueFormatter() {
 
-           // private SimpleDateFormat format = new SimpleDateFormat("HH:mm");
+            // private SimpleDateFormat format = new SimpleDateFormat("HH:mm");
 
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
                 Calendar cal = Calendar.getInstance();
-                cal.add(Calendar.MINUTE, (int)(lastIndex -value)*(-1));
+                cal.setTime(c.getTime());
+                cal.add(Calendar.MINUTE, (int) (lastIndex - value) * (-1));
                 return format.format(cal.getTime());
 
             }
@@ -275,12 +298,12 @@ public class DataView extends AppCompatActivity{
 
         xAxis2.setValueFormatter(new AxisValueFormatter() {
 
-            
 
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
                 Calendar cal = Calendar.getInstance();
-                cal.add(Calendar.HOUR_OF_DAY, (int)(lastPressIndex -value)*(-1));
+                cal.setTime(c.getTime());
+                cal.add(Calendar.HOUR_OF_DAY, (int) (lastPressIndex - value) * (-1));
                 return format.format(cal.getTime());
             }
 
@@ -289,16 +312,16 @@ public class DataView extends AppCompatActivity{
                 return 0;
             }
         });
-        
+
 
         xAxis3.setValueFormatter(new AxisValueFormatter() {
 
-            
 
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
                 Calendar cal = Calendar.getInstance();
-                cal.add(Calendar.MINUTE, (int)(lastIndex -value)*(-1));
+                cal.setTime(c.getTime());
+                cal.add(Calendar.MINUTE, (int) (lastIndex - value) * (-1));
                 return format.format(cal.getTime());
             }
 
@@ -310,12 +333,12 @@ public class DataView extends AppCompatActivity{
 
         xAxis4.setValueFormatter(new AxisValueFormatter() {
 
-            
 
             @Override
             public String getFormattedValue(float value, AxisBase axis) {
                 Calendar cal = Calendar.getInstance();
-                cal.add(Calendar.MINUTE, (int)(lastIndex -value)*(-1));
+                cal.setTime(c.getTime());
+                cal.add(Calendar.MINUTE, (int) (lastIndex - value) * (-1));
                 return format.format(cal.getTime());
             }
 
@@ -331,11 +354,11 @@ public class DataView extends AppCompatActivity{
         set.setDrawCircles(false);
         set.setDrawValues(false);
 
-        if(!multiIsChecked){
+        if (!prop.multiIsChecked) {
             LineData data = new LineData(set);
             chart.setData(data);
-        }else{
-            LineData data = new LineData(dataSets);
+        } else {
+            LineData data = new LineData(prop.dataSets);
 
             chart.setData(data);
         }
@@ -343,16 +366,14 @@ public class DataView extends AppCompatActivity{
         chart.invalidate();
 
 
-
         LineDataSet set2 = new LineDataSet(entries2, "Label21");
         set2.setMode(LineDataSet.Mode.HORIZONTAL_BEZIER);
         set2.setDrawCircles(false);
 
-            LineData data2 = new LineData(set2);
-            chart2.setData(data2);
+        LineData data2 = new LineData(set2);
+        chart2.setData(data2);
 
         chart2.invalidate();
-
 
 
         LineDataSet set3 = new LineDataSet(entries3, "Label21");
@@ -377,110 +398,18 @@ public class DataView extends AppCompatActivity{
 
         chart4.invalidate();
 
-        if(anim){
+        if (anim) {
             chart.animateXY(1500, 1500);
             chart2.animateXY(1500, 1500);
             chart3.animateXY(1500, 1500);
             anim = false;
         }
 
-
-        new DeviceConnectionTask().execute();
     }
 
-
-    private void processNewData(List<String> dataSet) {
-        StringBuilder builder = new StringBuilder();
-
-        Calendar calendar = Calendar.getInstance();
-
-        calendar.add(Calendar.MINUTE, -dataSet.size());
-        for (String data : dataSet) {
-            dataParser.parseLine(data);
-            if (!dataParser.isDataValid()) continue;
-
-            try {
-                File file = new File(getApplicationContext().getFilesDir(), fileDateFromat.format(Calendar.getInstance().getTime()) + ".txt");
-                file.createNewFile();
-                BufferedWriter output = new BufferedWriter(new FileWriter(file, true));
-
-                output.write(String.valueOf(calendar.getTimeInMillis()) + "\n");
-                output.write(data + "\n");
-                output.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            builder.append(dateFormat.format(calendar.getTime()));
-            builder.append(" ");
-            builder.append(dataParser.currentToString());
-            builder.append("\n");
-            calendar.add(Calendar.MINUTE, 1);
-        }
-
-        dataTextView.setText(builder.toString());
-
+    @Override
+    public void fragmentBecameVisible() {
+       refreshData();
     }
 
-    private class DeviceConnectionTask extends AsyncTask<Void, Void, List<String>> {
-        //private ProgressDialog progressDialog;
-
-        @Override
-        protected void onPreExecute() {
-            //progressDialog = ProgressDialog.show(getApplicationContext(), "Connecting...", "Please wait!");
-        }
-
-        @Override
-        protected List<String> doInBackground(Void... unused) {
-            try {
-                BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
-                BluetoothDevice device = adapter.getRemoteDevice(deviceAddress);
-                BluetoothSocket socket = device.createInsecureRfcommSocketToServiceRecord(SERIAL_PORT_COMMUNICATION_TYPE);
-                socket.connect();
-                socket.getOutputStream().write(ArduinoCommands.GET_DATA);
-                BufferedReader inputStream = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                List<String> rawData = readBtData(inputStream);
-                socket.close();
-                return rawData;
-            } catch (IOException e) {
-                e.printStackTrace();
-                return null;
-            }
-        }
-
-        private List<String> readBtData(BufferedReader inputStream) throws IOException {
-            List<String> rawData = new ArrayList<>();
-            while (true) {
-                String data = inputStream.readLine();
-                if (data.startsWith("E")) {
-                    break;
-                }
-                if (data.startsWith("-")) {
-                    continue;
-                }
-                rawData.add(data);
-            }
-            return rawData;
-        }
-
-        @Override
-        protected void onPostExecute(List<String> data) {
-            if (data == null) {
-              //  showMessage("Transfer error");
-                //finish();
-                return;
-            }
-            if (data.size() == 0) {
-               // showMessage("No data received");
-                return;
-            }
-            //progressDialog.dismiss();
-
-            processNewData(data);
-        }
-    }
-
-    private void showMessage(String text) {
-        Toast.makeText(this, text, Toast.LENGTH_LONG).show();
-    }
 }
