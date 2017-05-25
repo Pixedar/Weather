@@ -20,7 +20,7 @@
         <Switch
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Multi data"
+            android:text="Porównaj"
             android:id="@+id/switch2"
             android:layout_alignTop="@+id/datePicker2"
             android:layout_alignParentEnd="true" />

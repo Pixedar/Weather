@@ -22,21 +22,37 @@
         android:layout_alignParentStart="true">
 
 
-
-        <com.github.mikephil.charting.charts.CombinedChart xmlns:chart="http://schemas.android.com/apk/res-auto"
-            android:id="@+id/combinedChart"
+        <com.github.mikephil.charting.charts.BarChart xmlns:chart="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/maxTempChart"
             android:layout_width="match_parent"
             android:layout_height="270dp" />
 
         <com.github.mikephil.charting.charts.BarChart xmlns:chart="http://schemas.android.com/apk/res-auto"
-            android:id="@+id/barchart"
+            android:id="@+id/avTempChart"
             android:layout_width="match_parent"
             android:layout_height="270dp" />
 
         <com.github.mikephil.charting.charts.BarChart xmlns:chart="http://schemas.android.com/apk/res-auto"
-            android:id="@+id/barchart2"
+            android:id="@+id/amplTempChart"
             android:layout_width="match_parent"
             android:layout_height="270dp" />
+
+        <com.github.mikephil.charting.charts.BarChart xmlns:chart="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/humChart"
+            android:layout_width="match_parent"
+            android:layout_height="270dp" />
+
+        <com.github.mikephil.charting.charts.BarChart xmlns:chart="http://schemas.android.com/apk/res-auto"
+            android:id="@+id/lightChart"
+            android:layout_width="match_parent"
+            android:layout_height="270dp" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Rekordy"
+            android:id="@+id/records"
+            android:layout_gravity="center_horizontal" />
 
         <TextView
             android:layout_width="wrap_content"
@@ -52,8 +68,6 @@
             android:text="Medium Text"
             android:id="@+id/textView2"
             android:layout_gravity="left" />
-
-
 
 
     </LinearLayout>

@@ -9,10 +9,12 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.view.ViewPager;
+import android.util.Log;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -35,12 +37,29 @@ public class MainDataView extends FragmentActivity {
     public static ViewPager viewPager;
     public static TabsPagerAdapter mAdapter;
 
-    private boolean dataRecived = false;
+    private boolean dataProcessed = false;
+    private boolean dataRecieved = false;
+
+    public static float globalMaxTemp = -50;
+    public static float globalMinTemp =50;
+    public static Calendar maxTempCal = Calendar.getInstance();
+    public static Calendar minTempCal = Calendar.getInstance();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_data_view);
+
+        try{
+            File file = new File(getApplicationContext().getFilesDir(), "records.txt");
+            BufferedReader input = new BufferedReader(new FileReader(file));
+            globalMaxTemp = Float.valueOf(input.readLine());
+            globalMinTemp = Float.valueOf(input.readLine());
+            maxTempCal.setTimeInMillis(Long.valueOf(input.readLine()));
+            minTempCal.setTimeInMillis(Long.valueOf(input.readLine()));
+        }catch(IOException e){
+        Log.d("nie udalo sie","");
+        }
 
         viewPager = (ViewPager) findViewById(R.id.pager);
         mAdapter = new TabsPagerAdapter(getSupportFragmentManager());
@@ -52,23 +71,22 @@ public class MainDataView extends FragmentActivity {
         Intent intent = getIntent();
         deviceAddress = intent.getStringExtra(MainActivity.DEVICE_ADRESS);
 
-      //  new DeviceConnectionTask().execute();
 
-
-       refresh = new Runnable() {
+        refresh = new Runnable() {
             public void run() {
-                if(dataRecived){
-                    FragmentInterface fragment = (FragmentInterface) mAdapter.instantiateItem(viewPager, 1);
-                    fragment.fragmentBecameVisible();
-                    dataRecived = false;
-                }else{
+                if(!dataRecieved){
                     new DeviceConnectionTask().execute();
                 }
-                handler.postDelayed(refresh,30000);
+                if(dataProcessed && dataRecieved) {
+                    FragmentInterface fragment = (FragmentInterface) mAdapter.instantiateItem(viewPager, 1);
+                    fragment.fragmentBecameVisible();
+                    dataProcessed = false;
+                    dataRecieved = false;
+                }
+                handler.postDelayed(refresh,60002);
             }
         };
         handler.post(refresh);
-
 
     }
 
@@ -94,6 +112,7 @@ public class MainDataView extends FragmentActivity {
                 return rawData;
             } catch (IOException e) {
                 e.printStackTrace();
+              //  Log.d("PP","Do in Background  ");
                 return null;
             }
         }
@@ -103,12 +122,14 @@ public class MainDataView extends FragmentActivity {
             while (true) {
                 String data = inputStream.readLine();
                 if (data.startsWith("E")) {
+                    dataRecieved =true;
                     break;
                 }
                 if (data.startsWith("-")) {
                     continue;
                 }
                 rawData.add(data);
+              //  Log.d("PPd ",data);
             }
             return rawData;
         }
@@ -117,16 +138,16 @@ public class MainDataView extends FragmentActivity {
         protected void onPostExecute(List<String> data) {
             if (data == null) {
                 //  showMessage("Transfer error");
-                dataRecived = false;
+              //  Log.d("PP","Tranfer error");
                 return;
             }
             if (data.size() == 0) {
                 // showMessage("No data received");
-                dataRecived = false;
+               // Log.d("PP","no data recieved");
                 return;
             }
             //progressDialog.dismiss();
-            dataRecived = true;
+           // dataProcessed = true;
             processNewData(data);
         }
     }
@@ -152,6 +173,7 @@ public class MainDataView extends FragmentActivity {
                 output.write(data + "\n");
                 output.close();
             } catch (IOException e) {
+              //  Log.d("PP", "file error");
                 e.printStackTrace();
             }
 
@@ -162,6 +184,7 @@ public class MainDataView extends FragmentActivity {
             calendar.add(Calendar.MINUTE, 1);
         }
        // dataTextView.setText(builder.toString());
+        dataProcessed = true;
     }
 
 }

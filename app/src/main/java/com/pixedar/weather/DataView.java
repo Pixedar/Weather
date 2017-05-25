@@ -59,10 +59,7 @@ public class DataView extends Fragment implements FragmentInterface{
 
     Random random = new Random();
     String date ="100000000";
-    public static float globalMaxTemp = -50;
-    public static float globalMinTemp =50;
-    public static Calendar maxTempCal = Calendar.getInstance();
-    public static Calendar minTempCal = Calendar.getInstance();
+    
 
     private TextView textView;
     private TextView textView2;
@@ -100,16 +97,7 @@ public class DataView extends Fragment implements FragmentInterface{
         chart3.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
         chart4.getAxis(YAxis.AxisDependency.RIGHT).setEnabled(false);
         anim = true;
-        try{
-            File file = new File(getActivity().getApplicationContext().getFilesDir(), "records.txt");
-            BufferedReader input = new BufferedReader(new FileReader(file));
-            globalMaxTemp = Float.valueOf(input.readLine());
-            globalMinTemp = Float.valueOf(input.readLine());
-            maxTempCal.setTimeInMillis(Long.valueOf(input.readLine()));
-            minTempCal.setTimeInMillis(Long.valueOf(input.readLine()));
-        }catch(IOException e){
-
-        }
+        
 
         refreshData();
         return rootView;
@@ -161,10 +149,10 @@ public class DataView extends Fragment implements FragmentInterface{
                         set.setDrawCircles(false);
                         set.setDrawValues(false);
                         set.setDrawFilled(true);
-                        int c =Color.argb(255, random.nextInt(252) + 1, random.nextInt(252) + 1, random.nextInt(252) + 1);
+                        int c =Color.argb(255, random.nextInt(150) + 1, random.nextInt(100) + 100, random.nextInt(100) + 1);
                         set.setColor(c);
                         set.setFillColor(c);
-                        set.setFillAlpha(100);
+                        set.setFillAlpha(170);
                             try{
                                 prop.dataSets.set(1,set);
                             }catch(IndexOutOfBoundsException e){
@@ -183,9 +171,16 @@ public class DataView extends Fragment implements FragmentInterface{
                         sumTemp = sumTemp + temp;
                         if(temp > maxTemp){
                             maxTemp = temp;
+                            if(maxTemp > MainDataView.globalMaxTemp){
+                                MainDataView.maxTempCal.setTimeInMillis(Long.valueOf(date));
+                            }
+
                         }
                         if(temp < minTemp){
                             minTemp = temp;
+                            if(minTemp < MainDataView.globalMinTemp){
+                                MainDataView.minTempCal.setTimeInMillis(Long.valueOf(date));
+                            }
                         }
                     } else {
                         entries.add(new Entry(index, lastTemp));
@@ -209,6 +204,7 @@ public class DataView extends Fragment implements FragmentInterface{
         } catch (IOException e) {
             e.printStackTrace();
         }
+
         StringBuilder st = new StringBuilder();
         st.append(String.valueOf(dataParser.getTemperature()) + "°C   " + String.valueOf(dataParser.getHumidity()) + "%   " + String.valueOf(dataParser.getPressure()) + "Hpa");
         textView.setText(st.toString());
@@ -218,43 +214,42 @@ public class DataView extends Fragment implements FragmentInterface{
         st2.append("Max " + String.valueOf(maxTemp) + "°C " +" Min " + String.valueOf(minTemp) + "°C");
         textView2.setText(st2.toString());
         textView2.setTextSize(10.0f);
+
         try {
             File file2 = new File(getActivity().getApplicationContext().getFilesDir(), fileDateFromat.format(prop.calendar.getTime()) + "DD"+".txt");
             file2.createNewFile();
             BufferedWriter output = new BufferedWriter(new FileWriter(file2, false));
+
             output.write(sumTemp/index+ "\n");
             output.write(maxTemp+ "\n");
             output.write(sumHum/index+ "\n");
             output.write(sumLight/index+ "\n");
-
+            output.write(minTemp + "\n");
             output.close();
+        //    Log.d("PD",file2.getName());
         } catch (IOException e) {
             e.printStackTrace();
         }
-        if(maxTemp > globalMaxTemp|| minTemp < globalMinTemp){
+        if(maxTemp > MainDataView.globalMaxTemp|| minTemp < MainDataView.globalMinTemp){
             try{
                 File file3 = new File(getActivity().getApplicationContext().getFilesDir(),"records.txt");
                 file3.createNewFile();
                 BufferedWriter output = new BufferedWriter(new FileWriter(file3, false));
-                output.write(maxTemp+ "\n");
-                output.write(minTemp+ "\n");
-                if(maxTemp > globalMaxTemp){
-                    output.write(String.valueOf(Prop.calendar.getTimeInMillis())+ "\n");
-                    globalMaxTemp = maxTemp;
-                    maxTempCal.setTime(Prop.calendar.getTime());
+                if(maxTemp > MainDataView.globalMaxTemp){
+                    output.write(maxTemp+ "\n");
+                    MainDataView.globalMaxTemp = maxTemp;
                 }else{
-                    output.write(String.valueOf(maxTempCal.getTimeInMillis())+ "\n");
+                    output.write(MainDataView.globalMaxTemp+ "\n");
                 }
-                if(minTemp < globalMinTemp){
-                    output.write(String.valueOf(Prop.calendar.getTimeInMillis())+ "\n");
-                    globalMinTemp = minTemp;
-                    minTempCal.setTime(Prop.calendar.getTime());
+                
+                if(minTemp < MainDataView.globalMinTemp) {
+                    output.write(minTemp+ "\n");
+                    MainDataView.globalMaxTemp = maxTemp;
                 }else{
-                    output.write(String.valueOf(minTempCal.getTimeInMillis())+ "\n");
-
+                    output.write(MainDataView.globalMinTemp+ "\n");
                 }
-
-
+                output.write(String.valueOf(MainDataView.maxTempCal.getTimeInMillis())+ "\n");
+                output.write(String.valueOf(MainDataView.minTempCal.getTimeInMillis())+ "\n");
                 output.close();
             }catch(IOException e){
 
@@ -353,6 +348,9 @@ public class DataView extends Fragment implements FragmentInterface{
         set.setDrawFilled(true);
         set.setDrawCircles(false);
         set.setDrawValues(false);
+        set.setFillAlpha(170);
+       // set.setFillColor(Color.rgb(150, 210, 120));
+       // set.setColor(Color.rgb(150, 210, 120));
 
         if (!prop.multiIsChecked) {
             LineData data = new LineData(set);
@@ -369,7 +367,7 @@ public class DataView extends Fragment implements FragmentInterface{
         LineDataSet set2 = new LineDataSet(entries2, "Label21");
         set2.setMode(LineDataSet.Mode.HORIZONTAL_BEZIER);
         set2.setDrawCircles(false);
-
+        set2.setFillAlpha(170);
         LineData data2 = new LineData(set2);
         chart2.setData(data2);
 
@@ -381,6 +379,7 @@ public class DataView extends Fragment implements FragmentInterface{
         set3.setDrawCircles(false);
         set3.setDrawFilled(true);
         set3.setDrawValues(false);
+        set3.setFillAlpha(170);
 
         LineData data3 = new LineData(set3);
         chart3.setData(data3);
@@ -392,6 +391,7 @@ public class DataView extends Fragment implements FragmentInterface{
         set4.setDrawCircles(false);
         set4.setDrawFilled(true);
         set4.setDrawValues(false);
+        set4.setFillAlpha(170);
 
         LineData data4 = new LineData(set4);
         chart4.setData(data4);
